@@ -1,0 +1,8 @@
+return {
+ summary='Gen III event archive with separate campaign menus, shiny rules and per-save receipts.',
+ author='Event Distributions contributors',
+ tags={'tool','gen3','events'},
+ differences={changed={'Preserved JEREMY gifts, city OTs and regional Ho-Oh rewards','Faithful Eon held items and partial Mystic ticket claims','Search, filters and persistent redemption journal','Hatchable event eggs and native Aurora/Mystic Ticket journeys'},added={'EVENTS start-menu screen','87 campaign menus and 322 Pokemon choices','670 PKHeX-validated variants; party/PC delivery'},known={'Emulates gift results, not executable distribution ROMs','Eon Ticket and Old Sea Map journeys require RSE; replicas remain available','Keep enabled for Japanese OT preservation during cartridge export'}},
+ credits={{who='BOIS CLUB GAMES, LLC',for_='Based on the Pokemon Gen 1 Recompilation Project by BOIS CLUB GAMES, LLC'},{who='PKHeX contributors',for_='GPL-3.0 legality engine and event definitions used by the offline build tool'},{who='Project Pokemon contributors',for_='Event preservation research and held-item references'}},
+ compat={engine='>=0.0.0-0 <2.0.0',modApi=2},
+}
