@@ -36,6 +36,7 @@ return function(Core,catalog)
     local function prepare(row,v)
       local n=1;for i,variant in ipairs(row.variants)do if variant==v then n=i;break end end
       local key=row.claim..':'..n
+      if s.cache[key] and (s.cache[key].delivered or (Core.generationPolicy(row) and s.cache[key].seedStart~=Core.seedCursor(session,row,v)))then s.cache[key]=nil end
       if not s.cache[key]then
         local job=Core.start(row,v,pack,session);s.cache[key]=job;s.queue[#s.queue+1]=job
       end
@@ -45,7 +46,9 @@ return function(Core,catalog)
       push('ABOUT THIS ARCHIVE',{
         {label='Verified Gen III event replicas'},
         {label='Original OTs and RNG retained'},
-        {label='Normal/shiny share one claim'},
+        {label='Normal/shiny share one USED marker'},
+        {label='Repeat gifts can be enabled on Home'},
+        {label='Native ticket journeys stay one-time'},
         {label='Choose hatchable eggs where supported'},
         {label='Native Aurora and Mystic Ticket routes'},
         {label='Save normally to keep receipts'},
@@ -58,8 +61,8 @@ return function(Core,catalog)
         p.rows={}
         for _,variant in ipairs(row.variants) do
           local availability=prepare(row,variant)
-          p.rows[#p.rows+1]={label=function()return (used(row) and '[USED] ' or '')..(variant.label or (variant.shiny and 'SHINY' or 'ORIGINAL'))..(availability.status=='searching' and ' [CHECK]' or availability.status=='failed' and ' [N/A]' or ' [READY]') end,
-            variant=variant,help=function()return availability.status=='failed' and availability.message or (row.personal and 'Uses your OT and trainer IDs' or variant.nature..' / '..variant.origin..' / ID '..variant.tid)end,
+          p.rows[#p.rows+1]={label=function()availability=prepare(row,variant);return (used(row) and '[USED] ' or '')..(variant.label or (variant.shiny and 'SHINY' or 'ORIGINAL'))..(availability.status=='searching' and ' [CHECK]' or availability.status=='failed' and ' [N/A]' or ' [READY]') end,
+            variant=variant,help=function()return availability.status=='failed' and availability.message or (row.personal and 'Uses your OT and trainer IDs' or Core.generationPolicy(row) and 'Fresh event PID/IVs; original OT and IDs' or variant.nature..' / '..variant.origin..' / ID '..variant.tid)end,
             action=function()
               p.variant=variant
               local q=push('PREPARING '..row.name:upper(),{{label='Finding a legal result...'},{label='B: Cancel'}},g.theme,'generating')
@@ -88,7 +91,7 @@ return function(Core,catalog)
                 q.rows={
                   {label=function()return (q.mode=='egg' and 'Hatches for: ' or 'OT: ')..(mon.otName:find('[\128-\255]') and 'Japanese event OT' or mon.otName)end,help='ID '..mon.otId..' / SID '..mon.otSecretId},
                   {label=function()return 'Destination: '..s.destination:upper()end,action=function()s.destination=s.destination=='party' and 'pc' or 'party'end},
-                  {label=function()return used(row) and 'ALREADY RECEIVED' or 'Receive Pokemon'end,action=function()
+                  {label=function()return used(row) and (Core.canRepeat(session,row) and 'Receive again' or 'ALREADY RECEIVED / RESERVED') or 'Receive Pokemon'end,action=function()
                     local ok,message=Core.deliver(session,row,variant,pack,s.destination,function(target)return Runtime.getSession()==target end,job,q.mode)
                     s.notice=message
                     if ok then q.kind='received';q.rows={{label='DISTRIBUTION COMPLETE'},{label='Marked USED on this save'},{label='Save normally to keep it'},{label='Back',action=back}} end
@@ -109,7 +112,7 @@ return function(Core,catalog)
           local v=p.variant
           push('EVENT DETAILS',{
             {label=g.name},{label=row.note},{label='OT: '..(row.personal and session.name or v.ot:find('[\128-\255]') and 'Japanese event OT' or v.ot)},
-            {label=row.personal and ('ID '..session.trainerId..' / SID '..session.secretId) or 'ID '..v.tid..' / SID '..v.sid},{label=row.personal and 'PID/IVs generated on selection' or 'PID '..string.format('%08X',v.pid)},
+            {label=row.personal and ('ID '..session.trainerId..' / SID '..session.secretId) or 'ID '..v.tid..' / SID '..v.sid},{label=Core.generationPolicy(row) and 'PID/IVs generated on selection' or 'PID '..string.format('%08X',v.pid)},
             {label='RNG: '..row.method},{label=row.personal and 'Source game rules retained' or 'Transferred record / PKHeX valid'},
           },g.theme,'info')
         end}
@@ -218,6 +221,7 @@ return function(Core,catalog)
       rows[#rows+1]={label='Search / filters',action=searchMenu}
       rows[#rows+1]={label='Redemption journal',action=journal}
       rows[#rows+1]={label='Native ticket journeys',action=nativeTickets}
+      rows[#rows+1]={label=function()return 'Repeat redemptions: '..(Core.repeatRedemptions(session) and 'ON' or 'OFF')end,help='Repeat Pokemon gifts; keeps USED history. Native journeys stay one-time.',action=function()Core.setRepeatRedemptions(session,not Core.repeatRedemptions(session))end}
       rows[#rows+1]={label='About / help',action=info}
     end
     push('EVENT DISTRIBUTIONS',rows,'gba','home')

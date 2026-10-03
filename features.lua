@@ -19,6 +19,14 @@ return function(C,catalog,eggs)
   for _,claim in ipairs(keys)do local i=index[claim];local old=C.ledger(s)[claim];rows[#rows+1]={claim=claim,name=i and i.row.label or 'Earlier event',campaign=i and i.group.name or '',kind='Earlier receipt',destination=type(old)=='table' and old.destination or 'Unknown',shiny=type(old)=='table' and old.shiny or false}end
   return rows
  end
+ function C.preserveReceipt(s,row)
+  local t=state(s)
+  for _,entry in ipairs(t.journal or {})do if entry.claim==row.claim then return end end
+  -- Keep old saves' original receipt visible when their first repeat is logged.
+  for _,entry in ipairs(C.journal(s))do if entry.claim==row.claim then
+   t.journal=t.journal or {};t.journal[#t.journal+1]=C.copy(entry);return
+  end end
+ end
  function C.makeEgg(mon,row,session,pack)
   local meta=eggs[row.key];if not meta then return nil,'No verified egg definition.' end
 
