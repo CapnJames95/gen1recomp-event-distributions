@@ -2,14 +2,8 @@
 
 Recreate supported event Pokemon, eggs and ticket journeys.
 
-# Event Distributions
+Supports Ruby, Sapphire, Emerald, FireRed and LeafGreen.
 
-Recreate supported event Pokemon, eggs and ticket journeys.
+Adds Ruby/Sapphire event compatibility and edition-correct Eon Ticket journeys. Unsupported island journeys remain unavailable; repeat-redemption settings and claim history are preserved.
 
-For **Emerald, FireRed and LeafGreen**. Recommend **gen1recomp 0.3.42+**, especially for Sweet Scent.
-
-- Browse events with search, filters, previews and a claim journal.
-- Supported Emerald Aurora, Mystic and Eon Ticket journeys.
-- Preserves supported event provenance; English Emerald native Old Sea Map/Mew unlock is excluded.
-
-v1.4.5 adds optional repeat redemption, retains USED markers and the journal, and generates fresh event-valid results across all non-preserved choices. The nine preserved JEREMY specimens remain fixed. Native ticket journeys and story flags are not reset.
+See [README](README.md) for features, controls and limitations.

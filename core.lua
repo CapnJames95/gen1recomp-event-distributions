@@ -43,11 +43,12 @@ end
 function Core.installNamePreservation()
   local G=require('src.save_convert.Gen3Save')
   installCodecNames(G)
-  if require('src.core.GameVersion').get()=='emerald' then installCodecNames(G.forVersion('emerald')) end
+  local version=require('src.core.GameVersion').get()
+  if version=='emerald' or version=='ruby' or version=='sapphire' then installCodecNames(G.forVersion(version)) end
 end
-function Core.origin(version) return ({firered=4,leafgreen=5,emerald=3})[version] end
+function Core.origin(version) return ({firered=4,leafgreen=5,emerald=3,ruby=2,sapphire=1})[version] end
 function Core.load(session)
-  if not session or (session.version~='firered' and session.version~='leafgreen' and session.version~='emerald') then return nil,'FireRed / LeafGreen / Emerald required.' end
+  if not session or (session.version~='firered' and session.version~='leafgreen' and session.version~='emerald' and session.version~='ruby' and session.version~='sapphire') then return nil,'A supported Gen 3 game is required.' end
   local cache=require('src.core.game3.dataset').cache()
   local root=require('src.core.game3.cache_paths').CACHE_ROOT
   local info=cache:read(root..'/meta.json') or ''
@@ -181,6 +182,12 @@ function Core.start(row,variant,pack,session)
       if row.personal then
         mon.ot,mon.otName,mon.otId,mon.otSecretId,mon.otGender=trainer.name,trainer.name,trainer.tid,trainer.sid,trainer.gender
         mon.cartExtra.eventOT=nil
+        if policy.japanese then
+          -- Japanese Gen 3 OT storage is five characters, 0xFF, then 0x00.
+          -- Preserve the final padding byte through the newer name codec.
+          local bytes=require("src.save_convert.Gen3Save").encodeString(trainer.name,6,255)..string.char(0)
+          mon.cartExtra.eventOT={name=trainer.name,tid=trainer.tid,sid=trainer.sid,language=mon.language,bytes={bytes:byte(1,7)}}
+        end
       elseif frame.otGender~=nil then mon.otGender=frame.otGender end
       if frame.sid then mon.otSecretId=frame.sid;if mon.cartExtra.eventOT then mon.cartExtra.eventOT.sid=frame.sid end end
       if frame.item then mon.heldItem=frame.item end
@@ -194,11 +201,11 @@ function Core.start(row,variant,pack,session)
       if policy.hostOrigin then
         -- FRLG-distributed event eggs retain their historical origin in Emerald.
         -- Receiving/hatching them in Hoenn does not turn them into Emerald events.
-        if trainer.version~='emerald' or policy.kind~='egg' then
+        if (trainer.version~='emerald' and trainer.version~='ruby' and trainer.version~='sapphire') or policy.kind~='egg' then
           mon.metGame=Core.origin(trainer.version)
         end
         if policy.kind=='egg' then
-          mon.metLocation,mon.metLevel=trainer.version=='emerald' and 0 or 88,0
+          mon.metLocation,mon.metLevel=(trainer.version=='emerald' or trainer.version=='ruby' or trainer.version=='sapphire') and 0 or 88,0
         end
       end
       if policy.kind=='egg' then mon.language=2 end
@@ -235,6 +242,7 @@ function Core.build(row,variant,pack,session)
   return job.status=='ready' and job.mon or nil,job.message,job
 end
 function Core.deliver(session,row,variant,pack,destination,isActive,prepared,mode)
+  if session and (session.version=='ruby' or session.version=='sapphire') and tostring(require('src.core.game3.map').current or session.map):find('BATTLE_TOWER',1,true) then return false,'Leave the Battle Tower before receiving Pokemon.' end
   if session and session.version=="emerald" and session.frontier and (session.frontier.challengeStatus or 0)~=0 then return false,"Finish the Battle Frontier challenge before receiving Pokemon." end
   if not isActive(session) then return false,'The active save changed. Reopen Events.' end
   if Core.receipt(session,row) and not Core.canRepeat(session,row) then return false,'Already received or reserved on this save.' end

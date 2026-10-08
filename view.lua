@@ -1,3 +1,9 @@
+-- RS native small-font atlases do not render reliably in these compact mod menus.
+-- Keep measurement and drawing on the same readable native face.
+local function collectionFont()
+ local v=require('src.core.GameVersion').get()
+ return (v=='ruby' or v=='sapphire') and 'normal' or nil
+end
 -- Original vector/text layouts inspired by GBA operator and Wonder Card screens.
 -- No distribution ROM graphics are bundled.
 local View={}
@@ -16,8 +22,8 @@ function View.draw(s,p)
   local function rect(x,y,w,h,c)G.setColor(c);G.rectangle('fill',x,y,w,h)end
   local function text(v,x,y,w,small)
     v=tostring(v or '')
-    while F.measure(v,{small=small})>w and #v>0 do v=v:sub(1,-2) end
-    W.printPx(v,x,y,{small=small,maxWidth=w,colors=F.COLOR.WHITE})
+    while F.measure(v,{small=collectionFont()==nil and small})>w and #v>0 do v=v:sub(1,-2) end
+    W.printPx(v,x,y,{small=collectionFont()==nil and small,maxWidth=w,colors=F.COLOR.WHITE})
   end
   rect(0,0,240,160,t.bg);rect(0,0,240,21,t.bar)
   text(p.title,8,2,224,true)

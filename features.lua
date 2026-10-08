@@ -71,8 +71,9 @@ return function(C,catalog,eggs)
   local result={}
   for _,g in ipairs(catalog)do if g.category=='Ticket encounters' then for _,r in ipairs(g.rows)do
    local origin=r.variants[1].origin
-   local host=s.version=='emerald' and 'E' or s.version=='firered' and 'FR' or 'LG'
+   local host=({emerald='E',ruby='R',sapphire='S',firered='FR',leafgreen='LG'})[s.version]
    local eonSpecies
+   if (s.version=='ruby' or s.version=='sapphire') and key=='eon_ticket' then eonSpecies=s.version=='ruby' and 380 or 381 end
    if s.version=='emerald' and key=='eon_ticket' then
     local Cn=require('src.core.game3.constants').of('emerald')
     local choice=require('src.core.game3.scripting.flags').getVar(require('src.core.game3.mystery_gift').scriptStore(s),nil,Cn:require('vars','VAR_ROAMER_POKEMON'))
@@ -86,6 +87,19 @@ return function(C,catalog,eggs)
   return result
  end
  function C.ticketStatus(s,key)
+  if s.version=='ruby' or s.version=='sapphire' then
+   if key~='eon_ticket' then return nil,'This island is not present in Ruby/Sapphire.'end
+   local cn=require('src.core.game3.constants').of(s.version)
+   local mg=require('src.core.game3.mystery_gift');local bag=require('src.core.game3.bag')
+   local item=cn:require('items','ITEM_EON_TICKET')
+   if mg.getFlag(s,cn:require('flags','FLAG_SYS_HAS_EON_TICKET')) or mg.getFlag(s,cn:require('flags','FLAG_ENCOUNTERED_LATIAS_OR_LATIOS'))
+     or (s.bag and bag.has(s.bag,item,1)) then return nil,'Ticket already received or island encounter already used. Existing progress is preserved.'end
+   for _,entry in ipairs(s.storage and s.storage.items or {})do
+    if tonumber(entry.id)==item and (tonumber(entry.qty)or 0)>0 then return nil,'The Eon Ticket is already in your PC. Existing progress is preserved.'end
+   end
+   if #C.ticketRows(s,key)==0 then return nil,'The island Pokemon is already claimed or reserved on this save.'end
+   return {titleText='EON TICKET / SOUTHERN ISLAND',rsEon=true,item=item,flag=cn:require('flags','FLAG_SYS_HAS_EON_TICKET')}
+  end
   local M=require('src.core.game3.mystery_gift')
   local card;for _,x in ipairs(M.builtins())do if x.key==(s.version=='emerald' and 'rse_'..key or key) then card=x.card end end
   if not card then return nil,'This ticket has no supported native route in this game.'end
@@ -95,6 +109,8 @@ return function(C,catalog,eggs)
  end
  function C.activateTicket(s,key,jobs,pack,active)
   if not active(s)then return false,'The active save changed.'end
+  if (s.version=='ruby' or s.version=='sapphire') and tostring(require('src.core.game3.map').current or s.map):find('BATTLE_TOWER',1,true) then return false,'Leave the Battle Tower before receiving a ticket.'end
+  if s.version=='emerald' and s.frontier and (s.frontier.challengeStatus or 0)~=0 then return false,'Finish the Battle Frontier challenge before receiving a ticket.'end
   local card,err=C.ticketStatus(s,key);if not card then return false,err end
   local expected=C.ticketRows(s,key)
   if #expected~=#jobs then return false,'Ticket selection changed.'end
@@ -103,8 +119,17 @@ return function(C,catalog,eggs)
    local m,why=C.template(j.row,j.variant,pack);if not m then return false,why end
   end
   local M=require('src.core.game3.mystery_gift')
-  local code=M.deliverGift(s,card)
-  if code~=M.DELIVER_GIVEN then return false,'Ticket delivery failed (bag full or already received).'end
+  if card.rsEon then
+   -- Native RS record-mixing receipt grants the item and HAS_EON_TICKET flag.
+   -- Do not replace RAM scripts, enable Mystery Gift, or modify the story/roamer.
+   local Bag=require('src.core.game3.bag')
+   s.bag=s.bag or Bag.new()
+   if not Bag.add(s.bag,card.item,1)then return false,'Ticket delivery failed: make room in your bag.'end
+   M.setFlag(s,card.flag,true)
+  else
+   local code=M.deliverGift(s,card)
+   if code~=M.DELIVER_GIVEN then return false,'Ticket delivery failed (bag full or already received).'end
+  end
   -- Only suppress a previously claimed counterpart after ticket delivery
   -- succeeds. Never clear original fought/received flags or a prior receipt.
   if key=='mystic_ticket' then
@@ -124,9 +149,9 @@ return function(C,catalog,eggs)
    local mon=C.copy(j.mon);mon.metGame=C.origin(s.version)
    t.tickets[j.row.claim]={mon=mon,shiny=j.variant.shiny,trainer=C.trainer(s),status='waiting'}
    C.ledger(s)[j.row.claim]={pid=mon.personality,shiny=j.variant.shiny,destination='Native island encounter',mode='ticket',status='waiting'}
-   C.record(s,j.row,j.variant,s.version=='emerald' and 'Lilycove ferry / island' or 'Vermilion ferry / island','ticket unlocked',mon)
+   C.record(s,j.row,j.variant,require('src.core.game3.profile').forSession(s).family=='rse' and 'Lilycove ferry / island' or 'Vermilion ferry / island','ticket unlocked',mon)
   end
-  return true,'Ticket delivered. Travel from '..(s.version=='emerald' and 'Lilycove' or 'Vermilion')..' port; normal story requirements apply.'
+  return true,'Ticket delivered. Travel from '..(require('src.core.game3.profile').forSession(s).family=='rse' and 'Lilycove' or 'Vermilion')..' port; normal story requirements apply.'
  end
  function C.installFeatures()
   local B=require('src.core.game3.breeding')

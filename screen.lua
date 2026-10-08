@@ -180,8 +180,9 @@ return function(Core,catalog)
       },'kiosk','filters')
     end
     local function nativeTickets()
+      local rs=session.version=='ruby' or session.version=='sapphire'
       local rows={}
-      for _,key in ipairs(session.version=='emerald' and {'aurora_ticket','mystic_ticket','eon_ticket'} or {'aurora_ticket','mystic_ticket'})do
+      for _,key in ipairs(rs and {'eon_ticket'} or session.version=='emerald' and {'aurora_ticket','mystic_ticket','eon_ticket'} or {'aurora_ticket','mystic_ticket'})do
         local ticket=key
         rows[#rows+1]={label=ticket=='eon_ticket' and 'EON / Southern Island' or ticket=='aurora_ticket' and 'AURORA / Birth Island' or 'MYSTIC / Navel Rock',action=function()
           local card,why=Core.ticketStatus(session,ticket)
@@ -211,7 +212,9 @@ return function(Core,catalog)
           push(card.titleText,options,'ticket','ticketOptions')
         end}
       end
-      rows[#rows+1]={label=session.version=='emerald' and 'Old Sea Map: language restriction' or 'Eon Ticket / Old Sea Map',action=function()push('SOURCE GAME REQUIRED',{{label=session.version=='emerald' and 'Native Faraway Island Mew requires Japanese Emerald for historical legality. This US-ROM port does not unlock it. Verified Japanese caught replicas remain in Ticket encounters.' or 'These journeys need Ruby/Sapphire/Emerald maps. Use their caught replicas under Ticket encounters in FRLG.'}},'ticket','info')end}
+      if rs then rows[#rows+1]={label='Other event islands',action=function()push('SOURCE GAME REQUIRED',{{label='Birth Island, Navel Rock and Faraway Island are not native Ruby/Sapphire destinations. Verified caught replicas remain under Ticket encounters.'}},'ticket','info')end}
+      else rows[#rows+1]={label=session.version=='emerald' and 'Old Sea Map: language restriction' or 'Eon Ticket / Old Sea Map',action=function()push('SOURCE GAME REQUIRED',{{label=session.version=='emerald' and 'Native Faraway Island Mew requires Japanese Emerald for historical legality. This US-ROM port does not unlock it. Verified Japanese caught replicas remain in Ticket encounters.' or 'These journeys need Ruby/Sapphire/Emerald maps. Use their caught replicas under Ticket encounters in FRLG.'}},'ticket','info')end}
+      end
       push('NATIVE TICKET JOURNEYS',rows,'ticket','tickets')
     end
     local rows={}
