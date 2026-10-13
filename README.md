@@ -1,5 +1,3 @@
-[Download latest release](https://github.com/CapnJames95/gen1recomp-event-distributions/releases/latest) · [Collection](https://github.com/CapnJames95/gen1recomp-mod-releases)
-
 # Event Distributions 1.4.6
 
 ## Changes since public v1.4.5
