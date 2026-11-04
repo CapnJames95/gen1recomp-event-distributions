@@ -1,7 +1,7 @@
 {
   "id": "event-distributor",
   "name": "Event Distributions",
-  "version": "1.4.6",
+  "version": "1.4.7",
   "api": 2,
   "entry": "main.lua",
   "profile": "overhaul",
@@ -9,7 +9,7 @@
   "games": [
     "gen3"
   ],
-  "game_version": ">=0.3.39 <0.4.0",
+  "game_version": ">=0.3.39 <10.0.0",
   "permissions": [
     "engine_internals"
   ],
